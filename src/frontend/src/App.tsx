@@ -1070,513 +1070,520 @@ export default function App() {
     }, 100);
   };
 
-  if (screen === "MENU")
-    return (
+  return (
+    <>
+      {/* Canvas is always mounted so canvasRef.current is available when startGame is called */}
       <div
         style={{
-          width: "100vw",
-          height: "100dvh",
-          background: "#040804",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "monospace",
-          overflow: "hidden",
+          position: "fixed",
+          inset: 0,
+          display: screen === "PLAYING" ? "block" : "none",
+          background: "#000",
+          cursor: "crosshair",
           touchAction: "none",
           userSelect: "none",
+          WebkitUserSelect: "none",
         }}
       >
+        <canvas
+          ref={canvasRef}
+          style={{ display: "block", width: "100%", height: "100%" }}
+        />
+        {/* Sorcery button overlay */}
+        <button
+          type="button"
+          data-ocid="game.sorcery_button"
+          onTouchStart={(e) => {
+            e.preventDefault();
+            handleSorceryButton();
+          }}
+          onClick={handleSorceryButton}
+          style={{
+            position: "fixed",
+            bottom: 80,
+            right: 20,
+            width: 70,
+            height: 70,
+            borderRadius: "50%",
+            background: "rgba(0,20,0,0.75)",
+            border: gsRef.current?.player.activeSorcery
+              ? "3px solid #44ff44"
+              : "2px solid #225522",
+            color: "#44ff44",
+            fontSize: 28,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10,
+            touchAction: "none",
+            WebkitTapHighlightColor: "transparent",
+            backdropFilter: "blur(4px)",
+          }}
+        >
+          {gsRef.current?.player.activeSorcery
+            ? (() => {
+                const icons: Record<SorceryType, string> = {
+                  lightning: "⚡",
+                  shield: "🛡",
+                  blast: "💥",
+                };
+                return icons[gsRef.current.player.activeSorcery];
+              })()
+            : "🔒"}
+        </button>
+      </div>
+
+      {/* MENU screen */}
+      {screen === "MENU" && (
         <div
           style={{
+            width: "100vw",
+            height: "100dvh",
+            background: "#040804",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 24,
+            justifyContent: "center",
+            fontFamily: "monospace",
+            overflow: "hidden",
+            touchAction: "none",
+            userSelect: "none",
           }}
         >
-          <div style={{ textAlign: "center" }}>
-            <h1
-              style={{
-                fontSize: "clamp(48px,10vw,96px)",
-                fontWeight: 900,
-                color: "#22ff44",
-                textShadow: "0 0 40px #00ff22, 0 0 80px #00aa11",
-                letterSpacing: 12,
-                margin: 0,
-              }}
-            >
-              CONDRA
-            </h1>
-            <p
-              style={{
-                color: "#4a8a4a",
-                fontSize: 16,
-                letterSpacing: 4,
-                marginTop: 8,
-              }}
-            >
-              INFECTED. UNSTOPPABLE. EVOLVING.
-            </p>
-          </div>
           <div
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: 12,
-              width: 220,
-            }}
-          >
-            <button
-              type="button"
-              onClick={startGame}
-              data-ocid="menu.primary_button"
-              style={{
-                background: "#1a3a1a",
-                border: "2px solid #22aa22",
-                color: "#44ff44",
-                padding: "14px 0",
-                fontSize: 18,
-                fontFamily: "monospace",
-                cursor: "pointer",
-                letterSpacing: 4,
-              }}
-            >
-              START GAME
-            </button>
-            <button
-              type="button"
-              onClick={fetchLeaderboard}
-              data-ocid="menu.secondary_button"
-              style={{
-                background: "#111",
-                border: "2px solid #444",
-                color: "#888",
-                padding: "12px 0",
-                fontSize: 14,
-                fontFamily: "monospace",
-                cursor: "pointer",
-                letterSpacing: 2,
-              }}
-            >
-              LEADERBOARD
-            </button>
-          </div>
-          <p
-            style={{
-              color: "#334433",
-              fontSize: 12,
-              letterSpacing: 2,
-              marginTop: 8,
-              textAlign: "center",
-              padding: "0 16px",
-            }}
-          >
-            JOYSTICK · TAP RIGHT TO SHOOT · SORCERY BUTTON
-          </p>
-        </div>
-        {showLeaderboard && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0,0,0,0.85)",
-              display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              zIndex: 10,
+              gap: 24,
             }}
-            aria-label="Close leaderboard"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") setShowLeaderboard(false);
-            }}
-            onClick={() => setShowLeaderboard(false)}
           >
-            <div
-              style={{
-                background: "#0a1a0a",
-                border: "2px solid #225522",
-                padding: 32,
-                minWidth: 320,
-                fontFamily: "monospace",
-              }}
-              onKeyDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 style={{ color: "#44ff44", marginTop: 0, letterSpacing: 4 }}>
-                LEADERBOARD
-              </h2>
-              {leaderboard.length === 0 ? (
-                <p style={{ color: "#666" }}>No scores yet.</p>
-              ) : (
-                leaderboard.map((s, i) => (
-                  <div
-                    key={`${s.playerName}-${i}`}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      color: i === 0 ? "#ffcc00" : "#aaa",
-                      padding: "4px 0",
-                      borderBottom: "1px solid #1a2a1a",
-                    }}
-                  >
-                    <span>
-                      #{i + 1} {s.playerName}
-                    </span>
-                    <span>{s.score.toString()}</span>
-                  </div>
-                ))
-              )}
-              <button
-                type="button"
-                onClick={() => setShowLeaderboard(false)}
+            <div style={{ textAlign: "center" }}>
+              <h1
                 style={{
-                  marginTop: 16,
-                  background: "transparent",
-                  border: "1px solid #444",
-                  color: "#888",
-                  padding: "8px 24px",
-                  cursor: "pointer",
-                  fontFamily: "monospace",
+                  fontSize: "clamp(48px,10vw,96px)",
+                  fontWeight: 900,
+                  color: "#22ff44",
+                  textShadow: "0 0 40px #00ff22, 0 0 80px #00aa11",
+                  letterSpacing: 12,
+                  margin: 0,
                 }}
               >
-                CLOSE
+                CONDRA
+              </h1>
+              <p
+                style={{
+                  color: "#4a8a4a",
+                  fontSize: 16,
+                  letterSpacing: 4,
+                  marginTop: 8,
+                }}
+              >
+                INFECTED. UNSTOPPABLE. EVOLVING.
+              </p>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                width: 220,
+              }}
+            >
+              <button
+                type="button"
+                onClick={startGame}
+                data-ocid="menu.primary_button"
+                style={{
+                  background: "#1a3a1a",
+                  border: "2px solid #22aa22",
+                  color: "#44ff44",
+                  padding: "14px 0",
+                  fontSize: 18,
+                  fontFamily: "monospace",
+                  cursor: "pointer",
+                  letterSpacing: 4,
+                }}
+              >
+                START GAME
+              </button>
+              <button
+                type="button"
+                onClick={fetchLeaderboard}
+                data-ocid="menu.secondary_button"
+                style={{
+                  background: "#111",
+                  border: "2px solid #444",
+                  color: "#888",
+                  padding: "12px 0",
+                  fontSize: 14,
+                  fontFamily: "monospace",
+                  cursor: "pointer",
+                  letterSpacing: 2,
+                }}
+              >
+                LEADERBOARD
               </button>
             </div>
+            <p
+              style={{
+                color: "#334433",
+                fontSize: 12,
+                letterSpacing: 2,
+                marginTop: 8,
+                textAlign: "center",
+                padding: "0 16px",
+              }}
+            >
+              JOYSTICK · TAP RIGHT TO SHOOT · SORCERY BUTTON
+            </p>
           </div>
-        )}
-      </div>
-    );
-
-  if (screen === "UPGRADE")
-    return (
-      <div
-        style={{
-          width: "100vw",
-          height: "100dvh",
-          background: "rgba(0,0,0,0.95)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "monospace",
-          gap: 32,
-          overflow: "auto",
-          padding: "20px 12px",
-          touchAction: "pan-y",
-        }}
-      >
-        <h2
-          style={{
-            color: "#44ff44",
-            fontSize: 28,
-            letterSpacing: 6,
-            textShadow: "0 0 20px #00ff44",
-            margin: 0,
-            textAlign: "center",
-          }}
-        >
-          STAGE {stageForUpgrade} COMPLETE
-        </h2>
-        <p
-          style={{
-            color: "#4a8a4a",
-            letterSpacing: 3,
-            margin: 0,
-            textAlign: "center",
-          }}
-        >
-          CHOOSE YOUR EVOLUTION
-        </p>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: window.innerWidth < 500 ? "column" : "row",
-            gap: 20,
-            flexWrap: "wrap",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          {(["gunner", "sorcerer", "virus"] as UpgradePath[]).map(
-            (path, pi) => {
-              const tierIdx = gsRef.current?.upgradesDone[pi] ?? 0;
-              const upgrade =
-                UPGRADES[path][Math.min(tierIdx, UPGRADES[path].length - 1)];
-              const colors: Record<UpgradePath, string> = {
-                gunner: "#cc6622",
-                sorcerer: "#4466cc",
-                virus: "#22aa44",
-              };
-              return (
+          {showLeaderboard && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.85)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 10,
+              }}
+              aria-label="Close leaderboard"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ")
+                  setShowLeaderboard(false);
+              }}
+              onClick={() => setShowLeaderboard(false)}
+            >
+              <div
+                style={{
+                  background: "#0a1a0a",
+                  border: "2px solid #225522",
+                  padding: 32,
+                  minWidth: 320,
+                  fontFamily: "monospace",
+                }}
+                onKeyDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h2
+                  style={{ color: "#44ff44", marginTop: 0, letterSpacing: 4 }}
+                >
+                  LEADERBOARD
+                </h2>
+                {leaderboard.length === 0 ? (
+                  <p style={{ color: "#666" }}>No scores yet.</p>
+                ) : (
+                  leaderboard.map((s, i) => (
+                    <div
+                      key={`${s.playerName}-${i}`}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        color: i === 0 ? "#ffcc00" : "#aaa",
+                        padding: "4px 0",
+                        borderBottom: "1px solid #1a2a1a",
+                      }}
+                    >
+                      <span>
+                        #{i + 1} {s.playerName}
+                      </span>
+                      <span>{s.score.toString()}</span>
+                    </div>
+                  ))
+                )}
                 <button
                   type="button"
-                  key={path}
-                  onClick={() => handleUpgrade(path)}
-                  data-ocid={`upgrade.item.${pi + 1}`}
+                  onClick={() => setShowLeaderboard(false)}
                   style={{
-                    background: "#0a0a0a",
-                    border: `2px solid ${colors[path]}`,
-                    color: "#ddd",
-                    padding: "24px 28px",
-                    width: window.innerWidth < 500 ? "80vw" : 180,
+                    marginTop: 16,
+                    background: "transparent",
+                    border: "1px solid #444",
+                    color: "#888",
+                    padding: "8px 24px",
                     cursor: "pointer",
                     fontFamily: "monospace",
-                    textAlign: "center",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 8,
                   }}
                 >
-                  <span style={{ fontSize: 32 }}>{upgrade.icon}</span>
-                  <span
-                    style={{
-                      color: colors[path],
-                      fontWeight: "bold",
-                      fontSize: 14,
-                      letterSpacing: 2,
-                    }}
-                  >
-                    {path.toUpperCase()}
-                  </span>
-                  <span style={{ fontSize: 13, fontWeight: "bold" }}>
-                    {upgrade.label}
-                  </span>
-                  <span style={{ fontSize: 11, color: "#888" }}>
-                    {upgrade.desc}
-                  </span>
+                  CLOSE
                 </button>
-              );
-            },
+              </div>
+            </div>
           )}
         </div>
-      </div>
-    );
+      )}
 
-  if (screen === "GAMEOVER")
-    return (
-      <div
-        style={{
-          width: "100vw",
-          height: "100dvh",
-          background: "#020402",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "monospace",
-          gap: 20,
-          padding: "20px",
-          touchAction: "none",
-        }}
-      >
-        <h1
-          style={{
-            color: "#ff2222",
-            fontSize: "clamp(28px,6vw,52px)",
-            letterSpacing: 6,
-            textShadow: "0 0 30px #ff0000",
-            margin: 0,
-            textAlign: "center",
-          }}
-        >
-          MISSION FAILED
-        </h1>
-        <p
-          style={{
-            color: "#884444",
-            letterSpacing: 3,
-            margin: 0,
-            textAlign: "center",
-          }}
-        >
-          THE VIRUS HAS CLAIMED YOU
-        </p>
+      {/* UPGRADE screen */}
+      {screen === "UPGRADE" && (
         <div
           style={{
-            background: "#0a0a0a",
-            border: "1px solid #332222",
-            padding: "24px 40px",
-            textAlign: "center",
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.95)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: "monospace",
+            gap: 32,
+            overflow: "auto",
+            padding: "20px 12px",
+            touchAction: "pan-y",
+            zIndex: 20,
           }}
         >
-          <p
+          <h2
             style={{
-              color: "#888",
-              margin: "0 0 4px",
-              fontSize: 12,
-              letterSpacing: 2,
-            }}
-          >
-            FINAL SCORE
-          </p>
-          <p
-            style={{
-              color: "#ffcc00",
-              fontSize: 36,
-              fontWeight: "bold",
+              color: "#44ff44",
+              fontSize: 28,
+              letterSpacing: 6,
+              textShadow: "0 0 20px #00ff44",
               margin: 0,
+              textAlign: "center",
             }}
           >
-            {finalScore.toLocaleString()}
+            STAGE {stageForUpgrade} COMPLETE
+          </h2>
+          <p
+            style={{
+              color: "#4a8a4a",
+              letterSpacing: 3,
+              margin: 0,
+              textAlign: "center",
+            }}
+          >
+            CHOOSE YOUR EVOLUTION
           </p>
-        </div>
-        {!scoreSubmitted ? (
           <div
             style={{
               display: "flex",
-              gap: 8,
-              alignItems: "center",
+              flexDirection: window.innerWidth < 500 ? "column" : "row",
+              gap: 20,
               flexWrap: "wrap",
               justifyContent: "center",
+              alignItems: "center",
             }}
           >
-            <input
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="YOUR NAME"
-              maxLength={20}
-              data-ocid="gameover.input"
+            {(["gunner", "sorcerer", "virus"] as UpgradePath[]).map(
+              (path, pi) => {
+                const tierIdx = gsRef.current?.upgradesDone[pi] ?? 0;
+                const upgrade =
+                  UPGRADES[path][Math.min(tierIdx, UPGRADES[path].length - 1)];
+                const colors: Record<UpgradePath, string> = {
+                  gunner: "#cc6622",
+                  sorcerer: "#4466cc",
+                  virus: "#22aa44",
+                };
+                return (
+                  <button
+                    type="button"
+                    key={path}
+                    onClick={() => handleUpgrade(path)}
+                    data-ocid={`upgrade.item.${pi + 1}`}
+                    style={{
+                      background: "#0a0a0a",
+                      border: `2px solid ${colors[path]}`,
+                      color: "#ddd",
+                      padding: "24px 28px",
+                      width: window.innerWidth < 500 ? "80vw" : 180,
+                      cursor: "pointer",
+                      fontFamily: "monospace",
+                      textAlign: "center",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <span style={{ fontSize: 32 }}>{upgrade.icon}</span>
+                    <span
+                      style={{
+                        color: colors[path],
+                        fontWeight: "bold",
+                        fontSize: 14,
+                        letterSpacing: 2,
+                      }}
+                    >
+                      {path.toUpperCase()}
+                    </span>
+                    <span style={{ fontSize: 13, fontWeight: "bold" }}>
+                      {upgrade.label}
+                    </span>
+                    <span style={{ fontSize: 11, color: "#888" }}>
+                      {upgrade.desc}
+                    </span>
+                  </button>
+                );
+              },
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* GAMEOVER screen */}
+      {screen === "GAMEOVER" && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "#020402",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: "monospace",
+            gap: 20,
+            padding: "20px",
+            touchAction: "none",
+            zIndex: 20,
+          }}
+        >
+          <h1
+            style={{
+              color: "#ff2222",
+              fontSize: "clamp(28px,6vw,52px)",
+              letterSpacing: 6,
+              textShadow: "0 0 30px #ff0000",
+              margin: 0,
+              textAlign: "center",
+            }}
+          >
+            MISSION FAILED
+          </h1>
+          <p
+            style={{
+              color: "#884444",
+              letterSpacing: 3,
+              margin: 0,
+              textAlign: "center",
+            }}
+          >
+            THE VIRUS HAS CLAIMED YOU
+          </p>
+          <div
+            style={{
+              background: "#0a0a0a",
+              border: "1px solid #332222",
+              padding: "24px 40px",
+              textAlign: "center",
+            }}
+          >
+            <p
               style={{
-                background: "#111",
-                border: "1px solid #444",
-                color: "#fff",
-                padding: "8px 12px",
-                fontFamily: "monospace",
-                fontSize: 14,
-                outline: "none",
-                letterSpacing: 2,
-              }}
-            />
-            <button
-              type="button"
-              onClick={handleSubmitScore}
-              data-ocid="gameover.submit_button"
-              style={{
-                background: "#1a1a00",
-                border: "2px solid #aa8800",
-                color: "#ffcc00",
-                padding: "8px 16px",
-                cursor: "pointer",
-                fontFamily: "monospace",
+                color: "#888",
+                margin: "0 0 4px",
+                fontSize: 12,
                 letterSpacing: 2,
               }}
             >
-              SUBMIT
-            </button>
+              FINAL SCORE
+            </p>
+            <p
+              style={{
+                color: "#ffcc00",
+                fontSize: 36,
+                fontWeight: "bold",
+                margin: 0,
+              }}
+            >
+              {finalScore.toLocaleString()}
+            </p>
           </div>
-        ) : (
-          <p style={{ color: "#44aa44", letterSpacing: 2 }}>
-            SCORE SUBMITTED ✓
-          </p>
-        )}
-        <button
-          type="button"
-          onClick={() => {
-            setScoreSubmitted(false);
-            setPlayerName("");
-            startGame();
-          }}
-          data-ocid="gameover.primary_button"
-          style={{
-            background: "#0a1a0a",
-            border: "2px solid #226622",
-            color: "#44cc44",
-            padding: "14px 32px",
-            fontSize: 16,
-            cursor: "pointer",
-            fontFamily: "monospace",
-            letterSpacing: 4,
-            marginTop: 8,
-          }}
-        >
-          PLAY AGAIN
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setScreenBoth("MENU");
-            setScoreSubmitted(false);
-            setPlayerName("");
-          }}
-          data-ocid="gameover.secondary_button"
-          style={{
-            background: "transparent",
-            border: "1px solid #333",
-            color: "#555",
-            padding: "8px 24px",
-            cursor: "pointer",
-            fontFamily: "monospace",
-            fontSize: 12,
-          }}
-        >
-          MAIN MENU
-        </button>
-      </div>
-    );
-
-  // PLAYING screen
-  return (
-    <div
-      style={{
-        width: "100vw",
-        height: "100dvh",
-        overflow: "hidden",
-        background: "#000",
-        cursor: "crosshair",
-        touchAction: "none",
-        userSelect: "none",
-        WebkitUserSelect: "none",
-      }}
-    >
-      <canvas
-        ref={canvasRef}
-        style={{ display: "block", width: "100%", height: "100%" }}
-      />
-      {/* Sorcery button overlay */}
-      <button
-        type="button"
-        data-ocid="game.sorcery_button"
-        onTouchStart={(e) => {
-          e.preventDefault();
-          handleSorceryButton();
-        }}
-        onClick={handleSorceryButton}
-        style={{
-          position: "fixed",
-          bottom: 80,
-          right: 20,
-          width: 70,
-          height: 70,
-          borderRadius: "50%",
-          background: "rgba(0,20,0,0.75)",
-          border: gsRef.current?.player.activeSorcery
-            ? "3px solid #44ff44"
-            : "2px solid #225522",
-          color: "#44ff44",
-          fontSize: 28,
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 10,
-          touchAction: "none",
-          WebkitTapHighlightColor: "transparent",
-          backdropFilter: "blur(4px)",
-        }}
-      >
-        {gsRef.current?.player.activeSorcery
-          ? (() => {
-              const icons: Record<SorceryType, string> = {
-                lightning: "⚡",
-                shield: "🛡",
-                blast: "💥",
-              };
-              return icons[gsRef.current.player.activeSorcery];
-            })()
-          : "🔒"}
-      </button>
-    </div>
+          {!scoreSubmitted ? (
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                alignItems: "center",
+                flexWrap: "wrap",
+                justifyContent: "center",
+              }}
+            >
+              <input
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                placeholder="YOUR NAME"
+                maxLength={20}
+                data-ocid="gameover.input"
+                style={{
+                  background: "#111",
+                  border: "1px solid #444",
+                  color: "#fff",
+                  padding: "8px 12px",
+                  fontFamily: "monospace",
+                  fontSize: 14,
+                  outline: "none",
+                  letterSpacing: 2,
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleSubmitScore}
+                data-ocid="gameover.submit_button"
+                style={{
+                  background: "#1a1a00",
+                  border: "2px solid #aa8800",
+                  color: "#ffcc00",
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  fontFamily: "monospace",
+                  letterSpacing: 2,
+                }}
+              >
+                SUBMIT
+              </button>
+            </div>
+          ) : (
+            <p style={{ color: "#44aa44", letterSpacing: 2 }}>
+              SCORE SUBMITTED ✓
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setScoreSubmitted(false);
+              setPlayerName("");
+              startGame();
+            }}
+            data-ocid="gameover.primary_button"
+            style={{
+              background: "#0a1a0a",
+              border: "2px solid #226622",
+              color: "#44cc44",
+              padding: "14px 32px",
+              fontSize: 16,
+              cursor: "pointer",
+              fontFamily: "monospace",
+              letterSpacing: 4,
+              marginTop: 8,
+            }}
+          >
+            PLAY AGAIN
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setScreenBoth("MENU");
+              setScoreSubmitted(false);
+              setPlayerName("");
+            }}
+            data-ocid="gameover.secondary_button"
+            style={{
+              background: "transparent",
+              border: "1px solid #333",
+              color: "#555",
+              padding: "8px 24px",
+              cursor: "pointer",
+              fontFamily: "monospace",
+              fontSize: 12,
+            }}
+          >
+            MAIN MENU
+          </button>
+        </div>
+      )}
+    </>
   );
 }
